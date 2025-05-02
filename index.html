@@ -22,6 +22,8 @@
             --gradient-2: linear-gradient(45deg, #28a745, #20c997);
             --gradient-3: linear-gradient(45deg, #dc3545, #c82333);
             --edit-mode-color: #ff9800;
+            --high-contrast-text: #000000;
+            --high-contrast-background: #ffffff;
         }
 
         /* Tema oscuro */
@@ -34,6 +36,16 @@
             --background-color: #1a1a1a;
             --card-background: #2c2c2c;
             --edit-mode-color: #ffb74d;
+            --high-contrast-text: #ffffff;
+            --high-contrast-background: #000000;
+        }
+
+        /* Modo alto contraste */
+        [data-contrast="high"] {
+            --text-color: var(--high-contrast-text);
+            --background-color: var(--high-contrast-background);
+            --card-background: var(--high-contrast-background);
+            --border-color: var(--high-contrast-text);
         }
 
         /* Reset y estilos base */
@@ -90,7 +102,7 @@
             align-items: center;
         }
 
-        .theme-toggle, .edit-mode-btn, .add-schedule-btn, .add-task-btn {
+        .theme-toggle, .contrast-toggle, .edit-mode-btn, .add-schedule-btn, .add-task-btn {
             background: none;
             border: none;
             color: white;
@@ -101,7 +113,7 @@
             transition: var(--transition);
         }
 
-        .theme-toggle:hover, .edit-mode-btn:hover, .add-schedule-btn:hover, .add-task-btn:hover {
+        .theme-toggle:hover, .contrast-toggle:hover, .edit-mode-btn:hover, .add-schedule-btn:hover, .add-task-btn:hover {
             background-color: rgba(255, 255, 255, 0.2);
             transform: rotate(15deg);
         }
@@ -213,19 +225,25 @@
             justify-content: center;
             min-height: 80px;
             font-size: var(--course-font-size, 1.5rem);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
         .course-info h4 {
             margin-bottom: 0.3rem;
-            font-size: 1em;
-            font-weight: bold;
+            font-size: 1.1em;
+            font-weight: 700;
             letter-spacing: 0.5px;
             text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         }
         .course-info p {
-            font-size: 0.8em;
+            font-size: 0.9em;
             opacity: 0.95;
             margin: 0;
             text-align: center;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         }
 
         .course-actions {
@@ -301,56 +319,66 @@
             color: var(--text-color);
         }
 
+        /* Estilos para los botones de tareas */
         .task-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.8rem;
             align-items: center;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .task-actions button {
-            background: none;
-            border: none;
+            background: var(--card-background);
+            border: 2px solid var(--border-color);
             cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 4px;
+            padding: 0.8rem;
+            border-radius: 8px;
             transition: var(--transition);
-            font-size: 1rem;
+            font-size: 1.2rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 45px;
+            height: 45px;
+            box-shadow: var(--shadow);
         }
 
         .task-actions button.edit-btn {
             color: var(--primary-color);
-            background: rgba(74, 144, 226, 0.1);
+            border-color: var(--primary-color);
         }
 
         .task-actions button.delete-btn {
             color: var(--danger-color);
-            background: rgba(220, 53, 69, 0.1);
+            border-color: var(--danger-color);
         }
 
         .task-actions button.complete-btn {
             color: var(--success-color);
-            background: rgba(40, 167, 69, 0.1);
+            border-color: var(--success-color);
         }
 
         .task-actions button:hover {
             transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .task-actions button.edit-btn:hover {
-            background: rgba(74, 144, 226, 0.2);
+            background: var(--primary-color);
+            color: white;
         }
 
         .task-actions button.delete-btn:hover {
-            background: rgba(220, 53, 69, 0.2);
+            background: var(--danger-color);
+            color: white;
         }
 
         .task-actions button.complete-btn:hover {
-            background: rgba(40, 167, 69, 0.2);
+            background: var(--success-color);
+            color: white;
         }
 
         .task-details {
@@ -648,6 +676,30 @@
             from { opacity: 1; }
             to { opacity: 0.7; }
         }
+
+        /* Estilos para el botón de contraste */
+        .contrast-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .contrast-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: rotate(15deg);
+        }
+
+        .contrast-toggle.active {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -663,7 +715,7 @@
         </nav>
         <div class="header-actions">
             <button class="theme-toggle" id="theme-toggle">
-                <i class="fas fa-moon"></i>
+                <i class="fas fa-moon"></i> Oscuro/Claro
             </button>
             <button class="edit-mode-btn" id="edit-mode-btn">
                 <i class="fas fa-edit"></i> Modo Edición
@@ -1066,17 +1118,6 @@
                 <div class="task-item ${task.completed ? 'completed' : ''}" style="border-left-color: ${task.color}">
                     <div class="task-header">
                         <h3>${task.title}</h3>
-                        <div class="task-actions">
-                            <button class="edit-btn" onclick="editTask(${task.id})" title="Editar tarea">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="delete-btn" onclick="deleteTask(${task.id})" title="Eliminar tarea">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="complete-btn" onclick="toggleTaskCompletion(${task.id})" title="${task.completed ? 'Marcar como pendiente' : 'Marcar como completada'}">
-                                <i class="fas fa-${task.completed ? 'undo' : 'check'}"></i>
-                            </button>
-                        </div>
                     </div>
                     <div class="task-details">
                         <p class="task-date">
@@ -1092,6 +1133,17 @@
                                 <i class="fas fa-book"></i> ${task.course}
                             </p>
                         ` : ''}
+                    </div>
+                    <div class="task-actions">
+                        <button class="edit-btn" onclick="editTask(${task.id})" title="Editar tarea">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deleteTask(${task.id})" title="Eliminar tarea">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="complete-btn" onclick="toggleTaskCompletion(${task.id})" title="${task.completed ? 'Marcar como pendiente' : 'Marcar como completada'}">
+                            <i class="fas fa-${task.completed ? 'undo' : 'check'}"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -1361,7 +1413,7 @@
             // Llenar el formulario con los datos de la tarea
             form.querySelector('#task-title').value = task.title;
             form.querySelector('#task-date').value = task.date;
-            form.querySelector('#task-description').value = task.description;
+            form.querySelector('#task-description').value = task.description || '';
             form.querySelector('#task-color').value = task.color;
             
             // Manejar el curso
@@ -1437,15 +1489,6 @@
                 task.completed = !task.completed;
                 if (task.completed) {
                     addToHistory('Tarea completada', task.title);
-                    // Eliminar la tarea después de 5 segundos si está completada
-                    setTimeout(() => {
-                        if (task.completed) {
-                            state.tasks = state.tasks.filter(t => t.id !== taskId);
-                            saveToLocalStorage();
-                            renderTasks();
-                            updateReminders();
-                        }
-                    }, 5000);
                 } else {
                     addToHistory('Tarea marcada como pendiente', task.title);
                 }
