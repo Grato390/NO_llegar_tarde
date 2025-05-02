@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Horario y Tareas</title>
+    <style>
+        /* Variables globales */
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --border-color: #ddd;
+            --hover-color: #357abd;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+            --background-color: #ffffff;
+            --card-background: #ffffff;
+            --gradient-1: linear-gradient(45deg, #4a90e2, #357abd);
+            --gradient-2: linear-gradient(45deg, #28a745, #20c997);
+            --gradient-3: linear-gradient(45deg, #dc3545, #c82333);
+            --edit-mode-color: #ff9800;
+        }
+
+        /* Tema oscuro */
+        [data-theme="dark"] {
+            --primary-color: #64b5f6;
+            --secondary-color: #2c2c2c;
+            --text-color: #ffffff;
+            --border-color: #444;
+            --hover-color: #90caf9;
+            --background-color: #1a1a1a;
+            --card-background: #2c2c2c;
+            --edit-mode-color: #ffb74d;
+        }
+
+        /* Reset y estilos base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            transition: var(--transition);
+        }
+
+        /* Header */
+        .header {
+            background: var(--gradient-1);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            color: white;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .theme-toggle, .edit-mode-btn, .add-schedule-btn, .add-task-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover, .edit-mode-btn:hover, .add-schedule-btn:hover, .add-task-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: rotate(15deg);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Calendar */
+        .calendar-container {
+            background: var(--card-background);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            min-height: 400px;
+            overflow-x: auto;
+        }
+
+        .empty-calendar {
+            text-align: center;
+            padding: 2rem;
+            background: var(--gradient-1);
+            color: white;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            margin: 2rem auto;
+            box-shadow: var(--shadow);
+        }
+
+        .calendar-grid {
+            display: grid;
+            gap: 1rem;
+            min-width: 400px;
+            justify-content: center;
+        }
+
+        .week-header {
+            display: grid;
+            grid-template-columns: 80px repeat(var(--active-days), minmax(var(--col-min-width,120px), 1fr));
+            gap: 1rem;
+            text-align: center;
+            font-weight: bold;
+            padding: 0.5rem;
+            background-color: var(--secondary-color);
+            border-radius: 4px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .time-row {
+            display: grid;
+            grid-template-columns: 80px repeat(var(--active-days), minmax(var(--col-min-width,120px), 1fr));
+            gap: 1rem;
+            min-height: 100px;
+        }
+
+        .time-label {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            padding: 0.5rem;
+        }
+
+        .time-slot {
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.2rem;
+            min-height: 90px;
+            height: 90px;
+            background: var(--card-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .time-slot:not(:has(.course-info)) {
+            background: transparent;
+            border: none;
+            opacity: 1;
+        }
+        .time-slot:empty {
+            background: transparent;
+            border: none;
+        }
+
+        .course-info {
+            background: var(--gradient-1);
+            color: white;
+            padding: 1.5rem 0.5rem;
+            border-radius: 12px;
+            margin: 0;
+            animation: fadeIn 0.3s ease-in-out;
+            box-shadow: var(--shadow);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+            font-size: var(--course-font-size, 1.5rem);
+        }
+        .course-info h4 {
+            margin-bottom: 0.3rem;
+            font-size: 1em;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+        .course-info p {
+            font-size: 0.8em;
+            opacity: 0.95;
+            margin: 0;
+            text-align: center;
+        }
+
+        .course-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .course-actions button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .course-actions button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* Tasks Section */
+        .tasks-container {
+            background: var(--card-background);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+        }
+
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .task-item {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            position: relative;
+            padding-right: 120px; /* Espacio para los botones */
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .task-item.completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+            animation: fadeOut 0.5s ease-in-out;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .task-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: var(--transition);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .task-actions button.edit-btn {
+            color: var(--primary-color);
+            background: rgba(74, 144, 226, 0.1);
+        }
+
+        .task-actions button.delete-btn {
+            color: var(--danger-color);
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .task-actions button.complete-btn {
+            color: var(--success-color);
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .task-actions button:hover {
+            transform: scale(1.1);
+        }
+
+        .task-actions button.edit-btn:hover {
+            background: rgba(74, 144, 226, 0.2);
+        }
+
+        .task-actions button.delete-btn:hover {
+            background: rgba(220, 53, 69, 0.2);
+        }
+
+        .task-actions button.complete-btn:hover {
+            background: rgba(40, 167, 69, 0.2);
+        }
+
+        .task-details {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .task-date {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-description {
+            margin-bottom: 0.5rem;
+            white-space: pre-wrap;
+        }
+
+        .task-course {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: var(--secondary-color);
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .add-task-btn {
+            background: var(--gradient-2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .add-task-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .task-filters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .task-filter {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--card-background);
+            color: var(--text-color);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--card-background);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+        }
+
+        .today-summary, .reminders {
+            margin-bottom: 2rem;
+        }
+
+        .reminder-item {
+            background: var(--secondary-color);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            transition: var(--transition);
+        }
+
+        .reminder-item:hover {
+            transform: translateX(5px);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--card-background);
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--card-background);
+            color: var(--text-color);
+        }
+
+        .submit-btn {
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Animaciones */
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Section Styles */
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .calendar-container {
+                margin: 0 -1rem;
+                border-radius: 0;
+                overflow-x: auto;
+            }
+
+            .calendar-grid {
+                min-width: 800px;
+            }
+
+            .week-header {
+                display: grid;
+                grid-template-columns: 80px repeat(var(--active-days), minmax(var(--col-min-width,120px), 1fr));
+                position: sticky;
+                top: 0;
+                background: var(--card-background);
+                z-index: 10;
+            }
+
+            .time-row {
+                display: grid;
+                grid-template-columns: 80px repeat(var(--active-days), minmax(var(--col-min-width,120px), 1fr));
+            }
+
+            .time-label {
+                position: sticky;
+                left: 0;
+                background: var(--card-background);
+                z-index: 5;
+                padding: 0.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .nav-menu {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+
+            .nav-btn {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .calendar-container {
+                padding: 0.5rem;
+            }
+        }
+
+        /* Estilos para el modo edición */
+        .edit-mode .time-slot {
+            border: 2px dashed var(--edit-mode-color);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .edit-mode .time-slot:hover {
+            background-color: rgba(255, 152, 0, 0.1);
+        }
+
+        .edit-mode .time-slot:empty::after {
+            content: '+';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: var(--edit-mode-color);
+        }
+
+        .edit-mode-btn {
+            background: var(--gradient-3);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .edit-mode-btn.active {
+            background: var(--edit-mode-color);
+            transform: scale(1.05);
+        }
+
+        .edit-mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .expanded-day {
+            z-index: 20;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <h1>Mi Horario y Tareas</h1>
+        </div>
+        <nav class="nav-menu">
+            <button class="nav-btn active" data-section="calendar">Calendario</button>
+            <button class="nav-btn" data-section="tasks">Tareas</button>
+            <button class="nav-btn" data-section="history">Historial</button>
+        </nav>
+        <div class="header-actions">
+            <button class="theme-toggle" id="theme-toggle">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="edit-mode-btn" id="edit-mode-btn">
+                <i class="fas fa-edit"></i> Modo Edición
+            </button>
+            <button class="add-schedule-btn" id="add-schedule-btn">
+                <i class="fas fa-clock"></i> Agregar Horario
+            </button>
+            <button class="add-task-btn" id="add-task-btn">
+                <i class="fas fa-plus"></i> Nueva Tarea
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Calendar Section -->
+        <section id="calendar" class="section active">
+            <div class="calendar-container" id="calendar-container">
+                <!-- El contenido se generará dinámicamente -->
+            </div>
+        </section>
+
+        <!-- Tasks Section -->
+        <section id="tasks" class="section">
+            <div class="tasks-container">
+                <div class="tasks-header">
+                    <h2>Mis Tareas</h2>
+                    <div class="filters">
+                        <select id="task-filter">
+                            <option value="all">Todas las tareas</option>
+                            <option value="pending">Pendientes</option>
+                            <option value="completed">Completadas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="tasks-list" id="tasks-list">
+                    <!-- Las tareas se generarán dinámicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- History Section -->
+        <section id="history" class="section">
+            <div class="history-container">
+                <h2>Historial de Actividades</h2>
+                <div class="history-list" id="history-list">
+                    <!-- El historial se generará dinámicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="today-summary">
+                <h3>Resumen del Día</h3>
+                <div class="today-events" id="today-events">
+                    <!-- Los eventos se generarán dinámicamente -->
+                </div>
+            </div>
+            <div class="reminders">
+                <h3>Recordatorios</h3>
+                <div class="reminders-list" id="reminders-list">
+                    <!-- Los recordatorios se generarán dinámicamente -->
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Schedule Modal -->
+    <div id="schedule-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Agregar Horario</h2>
+            <form id="schedule-form">
+                <div class="form-group">
+                    <label for="schedule-day">Día</label>
+                    <select id="schedule-day" required>
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="schedule-time-range">Rango de Horas</label>
+                    <div class="time-range-selector">
+                        <select id="schedule-start-hour" required>
+                            <!-- Se generará dinámicamente -->
+                        </select>
+                        <span>a</span>
+                        <select id="schedule-end-hour" required>
+                            <!-- Se generará dinámicamente -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="schedule-course">Curso</label>
+                    <input type="text" id="schedule-course" required>
+                </div>
+                <div class="form-group">
+                    <label for="schedule-room">Salón</label>
+                    <input type="text" id="schedule-room" required>
+                </div>
+                <div class="form-group">
+                    <label for="schedule-color">Color del Curso</label>
+                    <input type="color" id="schedule-color" value="#4a90e2">
+                </div>
+                <button type="submit" class="submit-btn">Guardar Horario</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Nueva Tarea</h2>
+            <form id="task-form">
+                <div class="form-group">
+                    <label for="task-title">Título</label>
+                    <input type="text" id="task-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-date">Fecha de entrega</label>
+                    <input type="datetime-local" id="task-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-description">Descripción</label>
+                    <textarea id="task-description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="task-course">Curso</label>
+                    <select id="task-course">
+                        <!-- Se generará dinámicamente -->
+                    </select>
+                </div>
+                <div class="form-group" id="new-course-input" style="display: none;">
+                    <label for="new-course">Nombre del nuevo curso</label>
+                    <input type="text" id="new-course">
+                </div>
+                <div class="form-group">
+                    <label for="task-color">Color de la Tarea</label>
+                    <input type="color" id="task-color" value="#4a90e2">
+                </div>
+                <button type="submit" class="submit-btn">Guardar Tarea</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Estado de la aplicación
+        const state = {
+            schedule: JSON.parse(localStorage.getItem('schedule')) || {},
+            tasks: JSON.parse(localStorage.getItem('tasks')) || [],
+            history: JSON.parse(localStorage.getItem('history')) || [],
+            theme: localStorage.getItem('theme') || 'light',
+            currentSection: 'calendar',
+            editMode: false,
+            expandedDay: null
+        };
+
+        // Elementos del DOM
+        const calendarContainer = document.getElementById('calendar-container');
+        const tasksList = document.getElementById('tasks-list');
+        const historyList = document.getElementById('history-list');
+        const todayEvents = document.getElementById('today-events');
+        const remindersList = document.getElementById('reminders-list');
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const sections = document.querySelectorAll('.section');
+
+        // Funciones de utilidad
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function formatHour(hour) {
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour % 12 || 12;
+            return `${displayHour}:00 ${period}`;
+        }
+
+        function generateHourOptions() {
+            const hours = Array.from({ length: 24 }, (_, i) => i);
+            return hours.map(hour => {
+                const period = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour % 12 || 12;
+                return `<option value="${hour}">${displayHour}:00 ${period}</option>`;
+            }).join('');
+        }
+
+        function getUniqueCourses() {
+            const courses = new Set();
+            Object.values(state.schedule).forEach(schedule => {
+                if (schedule.course) courses.add(schedule.course);
+            });
+            return Array.from(courses);
+        }
+
+        // Función mejorada para guardar en localStorage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('schedule', JSON.stringify(state.schedule));
+                localStorage.setItem('tasks', JSON.stringify(state.tasks));
+                localStorage.setItem('history', JSON.stringify(state.history));
+                localStorage.setItem('theme', state.theme);
+                console.log('Datos guardados correctamente');
+            } catch (error) {
+                console.error('Error al guardar los datos:', error);
+                // Intentar guardar con menos datos si hay error de espacio
+                try {
+                    // Guardar solo los datos más importantes
+                    localStorage.setItem('schedule', JSON.stringify(state.schedule));
+                    localStorage.setItem('tasks', JSON.stringify(state.tasks));
+                } catch (e) {
+                    console.error('Error crítico al guardar:', e);
+                }
+            }
+        }
+
+        // Función para cargar datos del localStorage
+        function loadFromLocalStorage() {
+            try {
+                const savedSchedule = localStorage.getItem('schedule');
+                const savedTasks = localStorage.getItem('tasks');
+                const savedHistory = localStorage.getItem('history');
+                const savedTheme = localStorage.getItem('theme');
+
+                if (savedSchedule) state.schedule = JSON.parse(savedSchedule);
+                if (savedTasks) state.tasks = JSON.parse(savedTasks);
+                if (savedHistory) state.history = JSON.parse(savedHistory);
+                if (savedTheme) state.theme = savedTheme;
+
+                console.log('Datos cargados correctamente');
+            } catch (error) {
+                console.error('Error al cargar los datos:', error);
+            }
+        }
+
+        // Guardar datos antes de cerrar la página
+        window.addEventListener('beforeunload', () => {
+            saveToLocalStorage();
+        });
+
+        // Guardar datos periódicamente
+        setInterval(() => {
+            saveToLocalStorage();
+        }, 30000); // Guardar cada 30 segundos
+
+        // Navegación
+        function showSection(sectionId) {
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+            state.currentSection = sectionId;
+        }
+
+        // Funciones del calendario
+        function renderCalendar() {
+            // Filtrar días y horas con cursos
+            const allDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            const usedDays = new Set();
+            const usedHours = new Set();
+            const courseNames = [];
+
+            // Primero, recolectar todos los días y horas usados
+            Object.keys(state.schedule).forEach(key => {
+                const [day, hour] = key.split('-');
+                if (allDays.includes(day)) {  // Verificar que el día sea válido
+                    usedDays.add(day);
+                    usedHours.add(parseInt(hour));
+                    const course = state.schedule[key]?.course || '';
+                    if (course) courseNames.push(course);
+                }
+            });
+
+            // Ordenar los días según el orden correcto
+            const days = allDays.filter(day => usedDays.has(day));
+            let hours = Array.from(usedHours).sort((a, b) => a - b);
+
+            // Si no hay cursos, mostrar mensaje vacío
+            if (days.length === 0 || hours.length === 0) {
+                calendarContainer.innerHTML = `
+                    <div class="empty-calendar">
+                        <h2>¡Bienvenido a tu Horario!</h2>
+                        <p>No tienes horarios programados aún. Haz clic en el botón para agregar tu primer horario.</p>
+                        <button class="add-schedule-btn" onclick="openScheduleModal()">
+                            <i class="fas fa-plus"></i> Agregar Horario
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Calcular el rango de horas a mostrar (una hora antes y después)
+            let minHour = Math.max(0, Math.min(...hours) - 1);
+            let maxHour = Math.min(24, Math.max(...hours) + 1);
+            hours = [];
+            for (let h = minHour; h <= maxHour; h++) hours.push(h);
+
+            // Ajustar CSS variable para columnas activas
+            calendarContainer.style.setProperty('--active-days', days.length);
+
+            // Ajuste dinámico de ancho y fuente
+            let colMinWidth = 120;
+            let courseFontSize = '1.5rem';
+            let totalCourses = courseNames.length;
+            let expandedDay = state.expandedDay || null;
+
+            // Calcular el ancho mínimo necesario según el curso más largo
+            if (totalCourses <= 3) {
+                const maxLen = Math.max(...courseNames.map(c => c.length), 8);
+                colMinWidth = Math.max(120, Math.min(320, maxLen * 16));
+                courseFontSize = '1.7rem';
+            } else if (totalCourses >= 5) {
+                colMinWidth = 100;
+                courseFontSize = '1.1rem';
+            }
+
+            calendarContainer.style.setProperty('--col-min-width', colMinWidth + 'px');
+            calendarContainer.style.setProperty('--course-font-size', courseFontSize);
+
+            // Renderizar cabecera
+            let html = `<div class="calendar-grid">
+                <div class="week-header">
+                    <div class="time-label"></div>
+                    ${days.map((day, idx) => `<div class="${expandedDay === day ? 'expanded-day' : ''}" data-day="${day}">${day}</div>`).join('')}
+                </div>
+            `;
+
+            // Renderizar filas de horas
+            hours.forEach(hour => {
+                html += `<div class="time-row">
+                    <div class="time-label">${formatHour(hour)}</div>
+                    ${days.map(day => {
+                        const schedule = state.schedule[`${day}-${hour}`];
+                        let extraClass = '';
+                        if (expandedDay && expandedDay === day) extraClass = 'expanded-day';
+                        return `<div class="time-slot ${extraClass}" data-day="${day}" data-hour="${hour}" 
+                            ${state.editMode ? `onclick="handleTimeSlotClick('${day}', ${hour})"` : ''}>${schedule ? `
+                            <div class="course-info" style="background: ${schedule.color}">
+                                <h4>${schedule.course}</h4>
+                                <p>${schedule.room}</p>
+                                ${state.editMode ? `
+                                    <div class="course-actions">
+                                        <button onclick="editSchedule('${day}', ${hour})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteSchedule('${day}', ${hour})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}</div>`;
+                    }).join('')}
+                </div>`;
+            });
+
+            html += '</div>';
+            calendarContainer.innerHTML = html;
+
+            // Si hay 5 o más cursos, permitir seleccionar un día para expandir
+            if (totalCourses >= 5) {
+                calendarContainer.querySelectorAll('.week-header div[data-day]').forEach(el => {
+                    el.style.cursor = 'pointer';
+                    el.onclick = () => {
+                        state.expandedDay = el.getAttribute('data-day');
+                        renderCalendar();
+                    };
+                });
+            } else {
+                state.expandedDay = null;
+            }
+        }
+
+        // Funciones de tareas
+        function renderTasks() {
+            const filter = document.getElementById('task-filter').value;
+            const filteredTasks = state.tasks.filter(task => {
+                if (filter === 'completed') return task.completed;
+                if (filter === 'pending') return !task.completed;
+                return true;
+            });
+
+            tasksList.innerHTML = filteredTasks.map(task => `
+                <div class="task-item ${task.completed ? 'completed' : ''}" style="border-left-color: ${task.color}">
+                    <div class="task-header">
+                        <h3>${task.title}</h3>
+                        <div class="task-actions">
+                            <button class="edit-btn" onclick="editTask(${task.id})" title="Editar tarea">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn" onclick="deleteTask(${task.id})" title="Eliminar tarea">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="complete-btn" onclick="toggleTaskCompletion(${task.id})" title="${task.completed ? 'Marcar como pendiente' : 'Marcar como completada'}">
+                                <i class="fas fa-${task.completed ? 'undo' : 'check'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="task-details">
+                        <p class="task-date">
+                            <i class="fas fa-calendar"></i> ${formatDate(task.date)}
+                        </p>
+                        ${task.description ? `
+                            <p class="task-description">
+                                <i class="fas fa-align-left"></i> ${task.description}
+                            </p>
+                        ` : ''}
+                        ${task.course ? `
+                            <p class="task-course">
+                                <i class="fas fa-book"></i> ${task.course}
+                            </p>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Funciones de historial
+        function addToHistory(action, details) {
+            const historyItem = {
+                id: Date.now(),
+                action,
+                details,
+                timestamp: new Date().toISOString()
+            };
+            state.history.unshift(historyItem);
+            if (state.history.length > 50) state.history.pop();
+            saveToLocalStorage();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = state.history.map(item => `
+                <div class="history-item">
+                    <p class="history-action">${item.action}</p>
+                    <p class="history-details">${item.details}</p>
+                    <p class="history-time">${formatDate(item.timestamp)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Funciones de recordatorios y resumen
+        function updateReminders() {
+            const today = new Date();
+            const todayTasks = state.tasks.filter(task => {
+                const taskDate = new Date(task.date);
+                return !task.completed && 
+                       taskDate.getDate() === today.getDate() &&
+                       taskDate.getMonth() === today.getMonth() &&
+                       taskDate.getFullYear() === today.getFullYear();
+            });
+            
+            remindersList.innerHTML = todayTasks.length ? 
+                todayTasks.map(task => `
+                    <div class="reminder-item" style="border-left-color: ${task.color}">
+                        <h4>${task.title}</h4>
+                        <p>${new Date(task.date).toLocaleTimeString()}</p>
+                    </div>
+                `).join('') :
+                '<p>No hay tareas pendientes para hoy</p>';
+        }
+
+        function updateTodaySummary() {
+            const today = new Date();
+            const dayName = today.toLocaleDateString('es-ES', { weekday: 'long' });
+            
+            const todaySchedule = Object.entries(state.schedule)
+                .filter(([key]) => key.startsWith(dayName))
+                .map(([key, value]) => ({
+                    hour: parseInt(key.split('-')[1]),
+                    ...value
+                }))
+                .sort((a, b) => a.hour - b.hour);
+            
+            todayEvents.innerHTML = todaySchedule.length ?
+                todaySchedule.map(event => `
+                    <div class="today-event" style="border-left-color: ${event.color}">
+                        <h4>${event.course}</h4>
+                        <p>${formatHour(event.hour)} - ${formatHour(event.hour + 1)}</p>
+                        <p>${event.room}</p>
+                    </div>
+                `).join('') :
+                '<p>No hay clases programadas para hoy</p>';
+        }
+
+        // Event Listeners
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                showSection(button.dataset.section);
+            });
+        });
+
+        document.getElementById('add-schedule-btn').addEventListener('click', () => {
+            openScheduleModal();
+        });
+
+        document.getElementById('add-task-btn').addEventListener('click', () => {
+            document.getElementById('task-modal').style.display = 'block';
+        });
+
+        document.getElementById('schedule-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const day = form.querySelector('#schedule-day').value;
+            const startHour = parseInt(form.querySelector('#schedule-start-hour').value);
+            const endHour = parseInt(form.querySelector('#schedule-end-hour').value);
+            const course = form.querySelector('#schedule-course').value;
+            const room = form.querySelector('#schedule-room').value;
+            const color = form.querySelector('#schedule-color').value;
+            
+            for (let hour = startHour; hour < endHour; hour++) {
+                state.schedule[`${day}-${hour}`] = {
+                    course,
+                    room,
+                    color
+                };
+            }
+            
+            addToHistory('Horario agregado', `${course} - ${day} ${formatHour(startHour)} a ${formatHour(endHour)}`);
+            saveToLocalStorage();
+            renderCalendar();
+            updateTodaySummary();
+            document.getElementById('schedule-modal').style.display = 'none';
+        });
+
+        document.getElementById('task-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const task = {
+                id: Date.now(),
+                title: form.querySelector('#task-title').value,
+                date: form.querySelector('#task-date').value,
+                description: form.querySelector('#task-description').value,
+                course: form.querySelector('#task-course').value === 'other' 
+                    ? form.querySelector('#new-course').value 
+                    : form.querySelector('#task-course').value,
+                color: form.querySelector('#task-color').value,
+                completed: false
+            };
+            
+            state.tasks.push(task);
+            addToHistory('Tarea agregada', task.title);
+            saveToLocalStorage();
+            renderTasks();
+            updateReminders();
+            
+            // Limpiar el formulario
+            form.reset();
+            document.getElementById('new-course-input').style.display = 'none';
+            document.getElementById('task-modal').style.display = 'none';
+        });
+
+        document.getElementById('task-filter').addEventListener('change', renderTasks);
+
+        // Tema
+        function toggleTheme() {
+            state.theme = state.theme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', state.theme);
+            localStorage.setItem('theme', state.theme);
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+        // Cerrar modales
+        document.querySelectorAll('.close-modal').forEach(modal => {
+            modal.addEventListener('click', () => {
+                document.querySelectorAll('.modal').forEach(m => {
+                    m.style.display = 'none';
+                });
+            });
+        });
+
+        // Funciones para el modal de horarios
+        function openScheduleModal(day = null, hour = null) {
+            const modal = document.getElementById('schedule-modal');
+            const form = document.getElementById('schedule-form');
+            
+            // Si se proporciona día y hora, es una edición
+            if (day && hour !== null) {
+                const schedule = state.schedule[`${day}-${hour}`];
+                if (schedule) {
+                    form.querySelector('#schedule-day').value = day;
+                    form.querySelector('#schedule-start-hour').value = hour;
+                    form.querySelector('#schedule-end-hour').value = hour + 1;
+                    form.querySelector('#schedule-course').value = schedule.course;
+                    form.querySelector('#schedule-room').value = schedule.room;
+                    form.querySelector('#schedule-color').value = schedule.color;
+                }
+            } else {
+                // Es una nueva entrada, resetear el formulario
+                form.reset();
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function editSchedule(day, hour) {
+            const key = `${day}-${hour}`;
+            const schedule = state.schedule[key];
+            if (schedule) {
+                openScheduleModal(day, hour);
+            }
+        }
+
+        function deleteSchedule(day, hour) {
+            if (confirm('¿Estás seguro de que quieres eliminar este horario?')) {
+                const key = `${day}-${hour}`;
+                delete state.schedule[key];
+                addToHistory('Horario eliminado', `${day} ${formatHour(hour)}`);
+                saveToLocalStorage();
+                renderCalendar();
+                updateTodaySummary();
+            }
+        }
+
+        // Modo edición
+        function toggleEditMode() {
+            state.editMode = !state.editMode;
+            const editBtn = document.getElementById('edit-mode-btn');
+            editBtn.classList.toggle('active');
+            document.body.classList.toggle('edit-mode', state.editMode);
+            renderCalendar();
+        }
+
+        document.getElementById('edit-mode-btn').addEventListener('click', toggleEditMode);
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            
+            // Generar opciones de horas para los selectores
+            const startHourSelect = document.getElementById('schedule-start-hour');
+            const endHourSelect = document.getElementById('schedule-end-hour');
+            const hourOptions = generateHourOptions();
+            startHourSelect.innerHTML = hourOptions;
+            endHourSelect.innerHTML = hourOptions;
+
+            // Actualizar el selector de cursos en el formulario de tareas
+            const taskCourseSelect = document.getElementById('task-course');
+            const courses = getUniqueCourses();
+            taskCourseSelect.innerHTML = `
+                <option value="">Seleccionar curso existente</option>
+                ${courses.map(course => `<option value="${course}">${course}</option>`).join('')}
+                <option value="other">Otro curso...</option>
+            `;
+
+            // Mostrar/ocultar campo de texto para nuevo curso
+            taskCourseSelect.addEventListener('change', (e) => {
+                const newCourseInput = document.getElementById('new-course-input');
+                if (e.target.value === 'other') {
+                    newCourseInput.style.display = 'block';
+                } else {
+                    newCourseInput.style.display = 'none';
+                }
+            });
+
+            document.documentElement.setAttribute('data-theme', state.theme);
+            renderCalendar();
+            renderTasks();
+            renderHistory();
+            updateReminders();
+            updateTodaySummary();
+        });
+
+        // Modificar la función renderCalendar para manejar clics en modo edición
+        function handleTimeSlotClick(day, hour) {
+            if (state.editMode) {
+                openScheduleModal(day, hour);
+            }
+        }
+
+        function editTask(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const modal = document.getElementById('task-modal');
+            const form = document.getElementById('task-form');
+            
+            // Llenar el formulario con los datos de la tarea
+            form.querySelector('#task-title').value = task.title;
+            form.querySelector('#task-date').value = task.date;
+            form.querySelector('#task-description').value = task.description;
+            form.querySelector('#task-color').value = task.color;
+            
+            // Manejar el curso
+            const taskCourseSelect = form.querySelector('#task-course');
+            const courses = getUniqueCourses();
+            const isNewCourse = !courses.includes(task.course);
+            
+            taskCourseSelect.innerHTML = `
+                <option value="">Seleccionar curso existente</option>
+                ${courses.map(course => `<option value="${course}" ${course === task.course ? 'selected' : ''}>${course}</option>`).join('')}
+                <option value="other" ${isNewCourse ? 'selected' : ''}>Otro curso...</option>
+            `;
+
+            // Mostrar el campo de nuevo curso si es necesario
+            const newCourseInput = document.getElementById('new-course-input');
+            if (isNewCourse) {
+                newCourseInput.style.display = 'block';
+                document.getElementById('new-course').value = task.course;
+            } else {
+                newCourseInput.style.display = 'none';
+            }
+
+            // Mostrar el modal
+            modal.style.display = 'block';
+
+            // Modificar el comportamiento del formulario para actualizar en lugar de crear
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                const updatedTask = {
+                    ...task,
+                    title: form.querySelector('#task-title').value,
+                    date: form.querySelector('#task-date').value,
+                    description: form.querySelector('#task-description').value,
+                    color: form.querySelector('#task-color').value,
+                    course: form.querySelector('#task-course').value === 'other' 
+                        ? form.querySelector('#new-course').value 
+                        : form.querySelector('#task-course').value
+                };
+
+                const index = state.tasks.findIndex(t => t.id === taskId);
+                if (index !== -1) {
+                    state.tasks[index] = updatedTask;
+                    addToHistory('Tarea actualizada', updatedTask.title);
+                    saveToLocalStorage();
+                    renderTasks();
+                    updateReminders();
+                }
+
+                // Limpiar y cerrar
+                form.reset();
+                newCourseInput.style.display = 'none';
+                modal.style.display = 'none';
+                form.onsubmit = null; // Restaurar el comportamiento original
+            };
+        }
+
+        function deleteTask(taskId) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+                const task = state.tasks.find(t => t.id === taskId);
+                if (task) {
+                    state.tasks = state.tasks.filter(t => t.id !== taskId);
+                    addToHistory('Tarea eliminada', task.title);
+                    saveToLocalStorage();
+                    renderTasks();
+                    updateReminders();
+                }
+            }
+        }
+
+        function toggleTaskCompletion(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                if (task.completed) {
+                    addToHistory('Tarea completada', task.title);
+                    // Eliminar la tarea después de 5 segundos si está completada
+                    setTimeout(() => {
+                        if (task.completed) {
+                            state.tasks = state.tasks.filter(t => t.id !== taskId);
+                            saveToLocalStorage();
+                            renderTasks();
+                            updateReminders();
+                        }
+                    }, 5000);
+                } else {
+                    addToHistory('Tarea marcada como pendiente', task.title);
+                }
+                saveToLocalStorage();
+                renderTasks();
+                updateReminders();
+            }
+        }
+    </script>
+</body>
+</html> 
